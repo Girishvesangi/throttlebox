@@ -1,0 +1,61 @@
+import {Redis} from 'ioredis';
+import type { Policy } from './policies.js';
+
+export interface RateLimitResult{
+    allowed: boolean;
+    limit: number;
+    remaining: number;
+    resetAtMs: number;
+    retryAfterMs: number;
+}
+
+function decode(raw:unkown): RateLimitResult{
+    const[allowed,limit,remaining,resetAtMs, retryAfterMs]=raw as number[];
+    return {allowed:allowed===1,limit,remaining,resetAtMs,retryAfterMs};
+
+}
+
+export class ScriptRunner{
+    private readonly sha=new Map<string,string>();
+    constructor(
+        private readonly redis: Redis,
+        private readonly scripts: Record<string,string>,
+    ){}
+
+    async loadAll():Promise<void>{
+        for(const [name,body] of Object.entries(this.scripts)){
+            this.sha.set(name,(await this.redis.script('LOAD',body)) as string);
+        }
+    }
+
+    async run(name: string, key: string, args: Array<string |number>): Promise<RateLimitResult>{
+        const execute=()=>
+            this.redis.evalsha(this.sha.get(name)!,1,key,...args.map(String));
+        try{
+            return decode(await execute());
+        }
+        catch(error){
+            if(!String(error).includes('NOSCRIPT')) throw error;
+            this.sha.set(name, (await this.redis.script('LOAD',this.scripts[name])) as string);
+            return decode(await execute());
+        }
+    }
+}
+
+export async function checkLimit(
+    runner: ScriptRunner,
+    key:string,
+    policy:Policy,
+    cost:number,
+): Promise<RateLimitResult>{
+    switch (policy.algorithm){
+        case 'fixed_window':
+            return runner.run('fixed-window',key,[policy.limit,policy.windowMs,cost]);
+        case 'sliding_window':
+            return runner.run('sliding-window', key, [policy.limit, policy.windowMs, cost]);
+        case 'token_bucket':
+            return runner.run('token-bucket', key, [policy.capacity, policy.refillPerSecond, cost]);
+        case 'leaky_bucket':
+            return runner.run('leaky-bucket', key, [policy.capacity, policy.leakPerSecond, cost]);
+  }
+}  

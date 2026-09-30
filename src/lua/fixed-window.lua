@@ -29,4 +29,4 @@ if allowed ==0 then
     retry_after_ms= reset_at_ms -now_ms
 end
 
-return {allowed, remaining, reset_at_ms, retry_after_ms}
+return {allowed,limit, remaining, reset_at_ms, retry_after_ms}
