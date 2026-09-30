@@ -1,0 +1,10 @@
+local current=redis.call('GET',KEYS[1])
+if current==false then
+    current=0
+else
+    current=tonumber(current)
+end
+
+current=current +1
+redis.call('SET', KEYS[1],current)
+return current
