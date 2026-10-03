@@ -1,4 +1,4 @@
-`https://github.com/Girishvesangi/throttlebox/actions/workflows/ci.yml/badge.svg`
+[![CI](https://github.com/Girishvesangi/throttlebox/actions/workflows/ci.yml/badge.svg)](https://github.com/Girishvesangi/throttlebox/actions/workflows/ci.yml)
 # ThrottleBox
 
 Redis-backed rate limiting for Node.js. Four algorithms, one HTTP API, atomic by construction.
