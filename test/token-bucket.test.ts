@@ -22,7 +22,7 @@ test('burst of capacity allowed, then denied', async () => {
   const results = [];
   for (let i = 0; i < 6; i++) results.push(await check('u1'));
   expect(results.filter((r) => r.allowed)).toHaveLength(5);
-  expect(results[5].allowed).toBe(false);
+  expect(results[5]!.allowed).toBe(false);
 });
 
 test('denied request consumes nothing; bucket refills over time', async () => {

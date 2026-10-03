@@ -9,8 +9,12 @@ export interface RateLimitResult{
     retryAfterMs: number;
 }
 
-function decode(raw:unkown): RateLimitResult{
-    const[allowed,limit,remaining,resetAtMs, retryAfterMs]=raw as number[];
+
+
+
+
+function decode(raw:unknown): RateLimitResult{
+    const[allowed,limit,remaining,resetAtMs, retryAfterMs]=raw as [number,number,number,number,number];
     return {allowed:allowed===1,limit,remaining,resetAtMs,retryAfterMs};
 
 }
@@ -22,9 +26,16 @@ export class ScriptRunner{
         private readonly scripts: Record<string,string>,
     ){}
 
+    private scriptLoad(body: string): Promise<string> {
+    const redis = this.redis as unknown as { script(command: 'LOAD', script: string): Promise<string> };
+    return redis.script('LOAD', body);
+}
+
+
+
     async loadAll():Promise<void>{
         for(const [name,body] of Object.entries(this.scripts)){
-            this.sha.set(name,(await this.redis.script('LOAD',body)) as string);
+            this.sha.set(name,(await this.scriptLoad(body)));
         }
     }
 
@@ -36,7 +47,9 @@ export class ScriptRunner{
         }
         catch(error){
             if(!String(error).includes('NOSCRIPT')) throw error;
-            this.sha.set(name, (await this.redis.script('LOAD',this.scripts[name])) as string);
+            const body=this.scripts[name];
+            if(body===undefined) throw error;
+            this.sha.set(name, (await this.scriptLoad(body)));
             return decode(await execute());
         }
     }

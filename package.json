@@ -6,8 +6,10 @@
   "scripts": {
     "test": "vitest run",
     "dev": "tsx watch src/server.ts",
-    "bench":"k6 run bench/check.js"
-  },
+    "bench":"k6 run bench/check.js",
+    "build":"tsc",
+    "start":"node dist/server.js"
+    },
   "keywords": [],
   "author": "",
   "license": "ISC",

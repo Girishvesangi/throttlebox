@@ -1,5 +1,4 @@
 import fastify from "fastify";
-// import { checkLimit } from "./limiter.js";
 import { redis } from "./redis.js";
 import { error } from "node:console";
 import { policies } from "./policies.js";
