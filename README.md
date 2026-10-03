@@ -1,6 +1,6 @@
 [![CI](https://github.com/Girishvesangi/throttlebox/actions/workflows/ci.yml/badge.svg)](https://github.com/Girishvesangi/throttlebox/actions/workflows/ci.yml)
 
-**Live demo:** https://throttlebox.fly.dev
+**Live demo:** https://throttlebox.fly.dev/health
 
 # ThrottleBox
 
