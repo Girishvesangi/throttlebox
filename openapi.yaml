@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: ThrottleBox
+  version: 1.0.0
+  description: >
+    Redis-backed rate limiting for Node.js. Clients name a server-owned
+    policy; ThrottleBox atomically checks and consumes quota via Lua scripts.
+servers:
+  - url: http://localhost:3000
+    description: Local via `docker compose up`
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+  /v1/check:
+    post:
+      summary: Check and consume rate-limit quota
+      description: >
+        Evaluates one request against a server-owned policy and consumes
+        `cost` units of quota. A denied request still returns HTTP 200 with
+        `allowed: false` — only malformed requests return 4xx.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckRequest'
+            examples:
+              api-call:
+                value:
+                  policyId: api-burst
+                  subject: 'user:42'
+                  cost: 1
+      responses:
+        '200':
+          description: The rate-limit decision (allowed or denied)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckResult'
+        '400':
+          description: Invalid request (bad subject, missing policyId, invalid cost)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Unknown policyId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    CheckRequest:
+      type: object
+      required: [policyId, subject]
+      properties:
+        policyId:
+          type: string
+          description: ID of a server-owned policy
+          example: api-burst
+        subject:
+          type: string
+          description: Who the limit applies to (user ID, API key, IP…)
+          maxLength: 200
+          example: 'user:42'
+        cost:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Quota units to consume; must not exceed the policy's limit/capacity
+    CheckResult:
+      type: object
+      required: [allowed, limit, remaining, resetAtMs, retryAfterMs, algorithm]
+      properties:
+        allowed:
+          type: boolean
+          description: Whether the request is within quota
+        limit:
+          type: integer
+          description: The policy's limit (or bucket capacity)
+        remaining:
+          type: integer
+          description: Quota remaining after this request
+        resetAtMs:
+          type: integer
+          format: int64
+          description: Epoch milliseconds when the window/bucket fully resets
+        retryAfterMs:
+          type: integer
+          description: Milliseconds to wait before retrying; 0 when allowed
+        algorithm:
+          type: string
+          enum: [fixed_window, token_bucket, sliding_window, leaky_bucket]
+          description: The algorithm behind the policy that was evaluated
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: unknown policy
